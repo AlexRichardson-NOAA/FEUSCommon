@@ -92,15 +92,15 @@ NOAABlueScale<-colorRampPalette(colors = c(NOAALightBlue, NOAADarkBlue))
 counter0<-"000"
 
 #######FIND PARENT DIRECTORIES############
-sectname0<-paste0("FEUS", maxyr, sectname)
+sectname0<-paste0("FEUS", sectname)
 date00<-paste0(Sys.Date())
 dir.in<-getwd()
 dir.parent<-dirname(dir.in)
 dir.scripts<-paste0(dir.in, "/rscripts/")
-dir.common<-paste0(dir.parent, "/FEUS",maxyr,"Common/")
+dir.common<-paste0(dir.parent, "/FEUSCommon/")
 # dir.create(dir.scripts)
 dir.output<-paste0(dir.in, "/output/")
-# dir.create(dir.output)
+dir.create(dir.output)
 dir.data<-paste0(dir.in, "/data/")
 dir.rscripts<-paste0(dir.in, "/rscripts/")
 dir.data.common<-paste0(dir.common, "/data/")
@@ -130,7 +130,7 @@ dir.nattables<-paste0(dir.outputtables, "/nationaltables/")
 
 #Word styles file (from Common)
 if (FEUS0 == T){
-file.copy(from = paste0(dir.parent, "/FEUS",maxyr,"Common/word-styles-reference.docx"),
+file.copy(from = paste0(dir.parent, "/FEUSCommon/word-styles-reference.docx"),
           to = paste0(dir.out, "/rscripts/word-styles-reference.docx"),
           overwrite = T)
 }
@@ -150,25 +150,25 @@ for (i in 1:length(listfiles0)){
 }
 }
 #From Common Files
-listfiles0<-c(list.files(path = paste0(dir.parent, "/FEUS",maxyr,"Common/"),
+listfiles0<-c(list.files(path = paste0(dir.parent, "/FEUSCommon/"),
                          pattern = "\\.r", ignore.case = T))
 listfiles0<-listfiles0[!(grepl(pattern = "\\.rproj",
                                x = listfiles0, ignore.case = T))]
 
 if (FEUS0 == T){
 for (i in 1:length(listfiles0)){
-  file.copy(from = paste0(dir.parent, "/FEUS",maxyr,"Common/", listfiles0[i]),
+  file.copy(from = paste0(dir.parent, "/FEUSCommon/", listfiles0[i]),
             to = paste0(dir.out, "/rscripts/", listfiles0[i]),
             overwrite = T)
 }
 }
 
 #Common workbook files
-listfiles0<-list.files(path = paste0(dir.parent, "/FEUS",maxyr,"Common/"), pattern = ".csv")
+listfiles0<-list.files(path = paste0(dir.parent, "/FEUSCommon/"), pattern = ".csv")
 
 if (FEUS0 == T){
 for (i in 1:length(listfiles0)){
-  file.copy(from = paste0(paste0(dir.parent, "/FEUS",maxyr,"Common/"), listfiles0[i]),
+  file.copy(from = paste0(paste0(dir.parent, "/FEUSCommon/"), listfiles0[i]),
             to = paste0(dir.out, "/rawdata/", listfiles0[i]),
             overwrite = T)
 }
@@ -359,6 +359,8 @@ funct_df2js<-function(df.dat, minyr, maxyr) {
 
   df.dat$Footnotes<-as.character(df.dat$Footnotes)
   df.dat$Footnotes[df.dat$Footnotes %in% c("", "[]")]<-"null"
+  df.dat$Footnotes<-str_replace_all(df.dat$Footnotes, "\\[", "(")
+  df.dat$Footnotes<-str_replace_all(df.dat$Footnotes, "\\]", ")")
 
   # df.dat<-lapply(X = df.dat, FUN = as.character)
   for (col in 1:(ncol(df.dat)-1)){ #not footnotes
@@ -384,11 +386,13 @@ funct_df2js<-function(df.dat, minyr, maxyr) {
   # str0<-gsub(pattern = "/[/'", replacement = "/[`", x = str0)
   # str0<-gsub(pattern = "'/]", replacement = "/]`", x = str0)
   # str0<-gsub(pattern = '\\[\"', replacement = '\\["', x = str0)
-
+  
   # str0<-gsub(pattern = '\\\"', replacement = '"', x = str0, fixed = T)
   str0<-gsub(pattern = '\\\"', replacement = '', x = str0, fixed = T)
   str0<-gsub(pattern = '\\.\\]', replacement = '\\.\\"\\]', x = str0)
-
+  str0<-gsub(pattern = '\\)\\]', replacement = '\\)\\"\\]', x = str0)
+  str0<-gsub(pattern = ',\",', replacement = ',null,', x = str0)
+  
 
   #make year numeric
   if (sum(names(df.dat)=="Year")==1) {
@@ -444,7 +448,7 @@ text_liststocks<-function(dat, metric, orgby = "pct", absvalue=F, pctvalue=T,
                      paste0("There were no ",
                             ifelse(orgby == "pct", "percent ", "monitary "),
                             ifelse(decreasingTF==T, "increases", "decreases"),
-                            ifelse(section %in% "nominal", " (in nominal dollar values)", ""),
+                            ifelse(section %in% "nominal", " (in nominal values)", ""),
                             "."))
       } else { #other values qualified and there are no more
         str0<-""
@@ -678,8 +682,10 @@ tolower2<-function(str0, capitalizefirst=F) {
         } else if (length(keywords1) %in% 2 &
                    sum(grepl(x = str0, pattern = keywords1[1], ignore.case = T)>0) &
                    sum(grepl(x = str0, pattern = keywords1[2], ignore.case = T)>0)) {
-          str1[grep(x = str1, pattern = keywords1[1], ignore.case = T)]<-keywords1[1]
-          str1[grep(x = str1, pattern = keywords1[2], ignore.case = T)]<-keywords1[2]
+          if(!(str0 %in% c("southern", "Southern") & (keywords1[1] == "South" | keywords1[2] == "South"))){
+              str1[grep(x = str1, pattern = keywords1[1], ignore.case = T)]<-keywords1[1]
+              str1[grep(x = str1, pattern = keywords1[2], ignore.case = T)]<-keywords1[2]
+          }
         } else if (length(keywords1) %in% 3 &
                    grepl(x = str0, pattern = keywords1[1], ignore.case = T) &
                    grepl(x = str0, pattern = keywords1[2], ignore.case = T) &
