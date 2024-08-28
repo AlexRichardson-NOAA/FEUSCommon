@@ -22,7 +22,7 @@ PKG <- c("readr", "data.table","dplyr",
          # List Management
          "rlist",
          "pipeR",
-
+  
          #RMarkdown
          "rmarkdown",
          "knitr",
@@ -39,7 +39,8 @@ PKG <- c("readr", "data.table","dplyr",
 
          #Visuals
          "ggplot2",
-
+         "ggrepel",
+         "plotly",
          #Package Management
          # library(roxygen2)
          "devtools",
@@ -72,8 +73,10 @@ for (p in PKG) {
 options(htmltools.dir.version = FALSE)
 
 
+library(jsonlite)
+loadfonts(device = "win", quiet = TRUE)
 
-loadfonts(quiet = T)
+windowsFonts("Impact" = windowsFont("Impact"))
 
 
 options(java.parameters = "-Xmx1000m")
@@ -114,8 +117,10 @@ dir.create(dir.out)
 
 dir.create(paste0(dir.out, "/metadata/")) #Save metadata
 dir.create(paste0(dir.out, "/policy/")) #Save word files
-dir.create(paste0(dir.out, "/chapters/")) #Save word files for policy subsection
-dir.chapters<-paste0(dir.out, "/chapters/")
+dir.create(paste0(dir.out, "/Text and Graphs/")) #Save word files for policy subsection
+dir.chapters<-paste0(dir.out, "/Text and Graphs/")
+dir.create(paste0(dir.chapters, "/Figures/"))
+dir.figures<-paste0(dir.chapters, "/Figures/")
 dir.create(paste0(dir.out, "/rawdata/")) #Save word files for policy subsection
 dir.rawdata<-paste0(dir.out, "rawdata/")
 dir.create(paste0(dir.out, "/rscripts/")) #scripts
@@ -192,7 +197,7 @@ for (i in 1:length(listfiles0)){
 #
 # Region <- c("Gulf of Mexico", "North Pacific", "Pacific", "New England",
 #             "Mid-Atlantic", "South Atlantic", "Gulf of Mexico", "South Atlantic",
-#             "Western Pacific (Hawai`i)",
+#             "Western Pacific",
 #             "Gulf of Mexico", "New England", "Mid-Atlantic", "New England",
 #             "Gulf of Mexico", "New England", "Mid-Atlantic", "Mid-Atlantic",
 #             "South Atlantic", "Pacific", "New England", "South Atlantic",
@@ -223,6 +228,8 @@ for (i in 1:length(listfiles0)){
 
 
 #####KNOWNS#####
+data.tool <- "https://www.fisheries.noaa.gov/foss/f?p=215:200::::"
+data.sources <- "https://www.fisheries.noaa.gov/national/socioeconomics/fisheries-economics-united-states-data-sources-footnotes-and-reference"
 states.all.coastal<-c("Hawai`i", "Rhode Island", "Delaware", "West Florida", "East Florida")
 
 yearvars <- as.character(minyr:maxyr)
@@ -237,13 +244,13 @@ names(state.fips)<- c("Fips","State")
 
 Footnotes.list.Common<-list(
   #text
-  "ft_Data" = "See data sources section for more information about where each region or state's data comes from." ,
+  "ft_Data" = "For more information about where each region's or state's data comes from, see FEUS Data Sources and Reference Materials. Available at https://www.fisheries.noaa.gov/national/socioeconomics/fisheries-economics-united-states-data-sources-and-reference-materials." ,
   "ft_999" = "In this table, '<1' = 0-999 fish, and '1' = 1,000-1,499 fish.",
   "ft_na" = "'NA' = not available.",
-  "ft_FEUStool" = "Summary data is available online in the FEUS webtool. [Available at: https://www.fisheries.noaa.gov/data-tools/fisheries-economics-united-states-interactive-tool.]"
+  "ft_FEUStool" = "Summary data is available online in the FEUS web tool. Available at https://www.fisheries.noaa.gov/data-tools/fisheries-economics-united-states-data-and-visualizations."
 )
 
-reg.order<-c("North Pacific", "Pacific", "Western Pacific (Hawai`i)", "New England", "Mid-Atlantic", "South Atlantic", "Gulf of Mexico")
+reg.order<-c("North Pacific", "Pacific", "Western Pacific", "New England", "Mid-Atlantic", "South Atlantic", "Gulf of Mexico")
 reg.order1<-c("Alaska", "Pacific", "Hawaii", "New England", "Mid-Atlantic", "South Atlantic", "Gulf of Mexico")
 reg.order0<-1:length(reg.order)
 
@@ -445,8 +452,8 @@ text_liststocks<-function(dat, metric, orgby = "pct", absvalue=F, pctvalue=T,
                ifelse(decreasingTF==T, absval<100000, absval>100000) )) { #a wrong value (i.e. NA or negative for increasing visa versa)
       if (lv == 1) { #first value doesn't have anything useful
         str0<-paste0(str0,
-                     paste0("There were no ",
-                            ifelse(orgby == "pct", "percent ", "monitary "),
+                     paste0("none of the key species experienced ",
+                            #ifelse(orgby == "pct", "percent ", "monitary "),
                             ifelse(decreasingTF==T, "increases", "decreases"),
                             ifelse(section %in% "nominal", " (in nominal values)", ""),
                             "."))
@@ -566,7 +573,7 @@ text_increasingdecreasing<-function(minyr, maxyr,
                                             orgby = orgby, absvalue=absvalueTF, pctvalue=pctvalueTF,
                                             preunit = preunit, postunit = postunit))),
                " had the largest decreases.")
-
+  str0 <- gsub(x = str0, pattern = ". had the largest decreases.", replacement = ".", fixed = T)
   return(str0)
 
 }
@@ -623,6 +630,7 @@ text_increasingdecreasingbullets<-function(minyr, maxyr, dat, orgby = orgby, abs
                             lv=3, capitalizefirst=capitalizefirst, section="nominal"))
   a<- gsub(pattern = " \n\n  \n\n ", replacement = " \n\n ", x = a)
   a<- gsub(pattern = " \n\n  \n\n ", replacement = " \n\n ", x = a)
+  a<- gsub(pattern = "none of", replacement = "None of", x = a)
   return(a)
 }
 
@@ -660,7 +668,7 @@ tolower2<-function(str0, capitalizefirst=F) {
         "North Carolina", "Oregon", "Rhode Island", "South Carolina",
         "Texas",  "Virginia", "Washington",
         #Region
-        "North Pacific", "Pacific", "Western Pacific (Hawai`i)", "Western Pacific",
+        "North Pacific", "Pacific", "Western Pacific",
         "New England",
         "Mid-Atlantic","Gulf of Mexico",
         "South Atlantic",
@@ -690,9 +698,9 @@ tolower2<-function(str0, capitalizefirst=F) {
                    grepl(x = str0, pattern = keywords1[1], ignore.case = T) &
                    grepl(x = str0, pattern = keywords1[2], ignore.case = T) &
                    grepl(x = str0, pattern = keywords1[3], ignore.case = T)) {
-          str1[sum(grep(x = str1, pattern = keywords1[1], ignore.case = T)>0)]<-keywords1[1]
-          str1[sum(grep(x = str1, pattern = keywords1[2], ignore.case = T)>0)]<-keywords1[2]
-          str1[sum(grep(x = str1, pattern = keywords1[3], ignore.case = T)>0)]<-keywords1[3]
+          str1[grep(x = str1, pattern = keywords1[1], ignore.case = T)]<-keywords1[1]
+          str1[grep(x = str1, pattern = keywords1[2], ignore.case = T)]<-keywords1[2]
+          str1[grep(x = str1, pattern = keywords1[3], ignore.case = T)]<-keywords1[3]
         }
       }
 
@@ -837,6 +845,45 @@ numbers2words <- function(x){
 
 }
 
+
+### adaptaion of xunits() from Emily's FishEconProdOutput directory
+prettyunits <- function(temp00, combine=T) {
+  
+  temp00<-as.numeric(temp00)
+    
+    sigfig<-format(temp00, digits = 3, scientific = TRUE)
+    sigfig0<-as.numeric(substr(x = sigfig, start = (nchar(sigfig)-1), stop = nchar(sigfig)))
+    out<-c()
+    for (i in 1:length(sigfig0)){   
+    if (is.na(temp00[i])){
+      out[i]<- NA
+    } else if (sigfig0[i]<=5) {
+      # if (sigfig0<4) {
+      unit<-" thousand"
+      x<-round(temp00[i]/1e3, digits = 0)
+    #  x<-format(x = temp00, big.mark = ",", digits = 0, scientific = F)
+    # } else if (sigfig0>=4 & sigfig0<6) {
+    #   unit<-" thousand"
+    #   x<-round(temp00/1e3, digits = 1)
+    # } else if (sigfig0==5) {
+    #   unit<-" thousand"
+    #   x<-round(temp00/1e3, digits = 0)
+    } else if (sigfig0[i]>=6 & sigfig0[i]<9) {
+      unit<-" million"
+      x<-round(temp00[i]/1e6, digits = 1)
+    } else if (sigfig0[i]>=9 & sigfig0[i]<12) {
+      unit<-" billion"
+      x<-round(temp00[i]/1e9, digits = 1)
+    } else if (sigfig0[i]>=12) {
+      unit<-" trillion"
+      x<-round(temp00[i]/1e12, digits = 1)
+    }
+    
+    #out<-ifelse(combine==T, paste0(x, unit), list(x, unit))
+    out[i]<-paste0(x, unit)
+  }
+  return(out)
+}
 ###***Math/Formatting####
 
 #   Function: pchange()  -  print percent change calculation and direction
@@ -898,6 +945,29 @@ modnum<-function(x, divideby = 1000, commaseperator = T) {
         if(xx>0 & xx<999) {
           xx<-"< 1"
         } else if (xx>=1000 & xx<1499) {
+          xx<-"1"
+        } else {
+          xx<-format(xx/divideby, digits = 0, trim = F,
+                     big.mark = ifelse(commaseperator == T, ",", ""), scientific = F)
+        }
+      }
+      xxx[r,c]<-xx
+    }}
+  return(xxx)
+}
+
+
+modnum1<-function(x, divideby = 1, commaseperator = T) {
+  xxx<-matrix(data = NA, nrow = nrow(x), ncol = ncol(x))
+  
+  for (c in 1:ncol(x)){
+    for (r in 1:nrow(x)){
+      xx<-ifelse(is.na(x[r,c]), NA, as.numeric(gsub(x = x[r,c], pattern = ",", replacement = "")))
+      # print(paste0(r,", ",c, ", ", xx))
+      if (!is.na(xx)) {
+        if(xx>0 & xx<0.9) {
+          xx<-"< 1"
+        } else if (xx>=1.000 & xx<1.499) {
           xx<-"1"
         } else {
           xx<-format(xx/divideby, digits = 0, trim = F,
@@ -1256,7 +1326,7 @@ FilenameAuto<-function(xreg, xsect, xstate, xdesc){
                           State1 = State1,
                           fips = c(0, 1 ,2 ,6 ,9 ,10, 12, 12, 13, 15, 22,23,24,25,28,33,34,36,37,41,44,45,48,51,53),
                           Region = c("United States", "Gulf of Mexico", "North Pacific", "Pacific", "New England",
-              "Mid-Atlantic", "South Atlantic", "Gulf of Mexico", "South Atlantic", "Western Pacific (Hawai`i)",
+              "Mid-Atlantic", "South Atlantic", "Gulf of Mexico", "South Atlantic", "Western Pacific",
               "Gulf of Mexico", "New England", "Mid-Atlantic", "New England",
               "Gulf of Mexico", "New England", "Mid-Atlantic", "Mid-Atlantic",
               "South Atlantic", "Pacific", "New England", "South Atlantic",
@@ -1273,7 +1343,8 @@ FilenameAuto<-function(xreg, xsect, xstate, xdesc){
                           xstate = c("0", "1", "1", "1", "1", "1", "1", "2", "2", "1", "3", "2", "2", "3", "4",
             "4", "3", "4", "3", "2", "5", "4", "5",  "5", "3"),
                           xreg = c("0", "7", "1", "2", "4", "5", "6", "7", "6", "3", "7", "4", "5", "4", "7",
-          "4", "5", "5", "6", "2", "4", "6", "7",  "5", "2"))
+          "4", "5", "5", "6", "2", "4", "6", "7",  "5", "2"),
+                          regcolor = c("#002364", "#365E17", "#DB6015", "#00797F", "#3B469A", "#5761C0", "#4B8320", "#365E17", "#4B8320", "#B71300", "#365E17", "#3B469A", "#5761C0", "#3B469A", "#365E17", "#3B469A", "#5761C0", "#5761C0", "#4B8320", "#00797F", "#3B469A", "#4B8320", "#365E17", "#5761C0", "#00797F"))
 
 
   ###
@@ -1281,7 +1352,7 @@ FilenameAuto<-function(xreg, xsect, xstate, xdesc){
 
   ref<-data.frame(code = c(1, 2, 3, 4),
              element = c("xsect", "xsect", "xsect", "xsect"),
-             meaning = c("ManagCont", "Comm", "Rec", "MarEcon"))
+             meaning = c("ManagCont", "Comm", "Rec", "ME"))
 
   xdesc<-paste0(unique(as.character(statereg$abbvreg[statereg$xreg %in% xreg])),#"Reg",
                 "_", ref$meaning[ref$code %in% xsect], #section
@@ -1297,8 +1368,8 @@ FilenameAuto<-function(xreg, xsect, xstate, xdesc){
                 gsub(pattern = ")", replacement = "", x =
                        gsub(pattern = "`", replacement = "", x =
                               gsub(xdesc, pattern = " ", replacement = ""))))
-
-  filename0<-paste0(xreg, "_", xsect, "_", xstate, "_", xdesc)
+  xreg<-as.character(as.numeric(xreg)+1)
+  filename0<-paste0(xreg, "_", xdesc)
 
  return(filename0)
 }
