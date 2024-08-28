@@ -7,6 +7,7 @@ Code was origionally developed by:
 
 And has since been maintianed and updated by:
 **Alex Richardson**<sup>2</sup> (Alex.Richardson AT noaa.gov)
+**Kelsey Martin**<sup>3</sup> (Kelsey.Martin AT noaa.gov)
 
 <sup>1</sup>Alaska Fisheries Science Center, National Marine
 Fisheries Service, National Oceanic and Atmospheric Administration,
